@@ -39,6 +39,24 @@ export async function getUserId(name) {
   }
 }
 
+//get Doctots name
+export async function getDoctorsNames(type) {
+  try {
+    const doctorsArray = [];
+    const doctors = await Doctor.findAll({
+      attributes: ["name"],
+      where: { type: type },
+    });
+
+    doctors.forEach((doctor) => {
+      doctorsArray.push(doctor.name);
+    });
+    return doctorsArray;
+  } catch (e) {
+    console.error("Error getting user ID:", e);
+  }
+}
+
 //get Doctor by ID
 export async function getDoctorId(name) {
   try {
@@ -114,3 +132,39 @@ export async function sendSms(phoneNumber, message) {
   }
   sendSMS();
 }
+
+// async function geocodeLocation(location) {
+//   try {
+//     const url = `https://api.opencagedata.com/geocode/v1/json?key=${opencageApiKey}&q=${location}`;
+//     const response = await fetch(url);
+
+//     console.log(response);
+//     // requests.get(url, (error, response, body) => {
+//     //   if (!error && response.statusCode === 200) {
+//     //     const data = JSON.parse(body);
+
+//     //     if ("results" in data && data.results.length > 0) {
+//     //       const locationData = data.results[0];
+//     //       const latitude = locationData.geometry.lat;
+//     //       const longitude = locationData.geometry.lng;
+//     //       const formattedAddress = locationData.formatted_address;
+//     //       return { latitude, longitude, formattedAddress };
+//     //     } else {
+//     //       // Default location for Kenya (coordinates near the center of Kenya)
+//     //       const kenyaLatitude = 1.2921;
+//     //       const kenyaLongitude = 36.8219;
+//     //       return {
+//     //         latitude: kenyaLatitude,
+//     //         longitude: kenyaLongitude,
+//     //         formattedAddress: "Kenya",
+//     //       };
+//     //     }
+//     //   } else {
+//     //     console.error("Error geocoding location:", error);
+//     //     return null;
+//     //   }
+//     // });
+//   } catch (error) {
+//     console.log(error);
+//   }
+// }

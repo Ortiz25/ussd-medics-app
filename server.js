@@ -12,6 +12,7 @@ import {
   getUserId,
   getDoctorType,
   getDoctorId,
+  getDoctorsNames,
 } from "./util/helpers.js";
 
 const app = express();
@@ -53,42 +54,6 @@ menu.sessionConfig({
   },
 });
 
-async function geocodeLocation(location) {
-  try {
-    const url = `https://api.opencagedata.com/geocode/v1/json?key=${opencageApiKey}&q=${location}`;
-    const response = await fetch(url);
-
-    console.log(response);
-    // requests.get(url, (error, response, body) => {
-    //   if (!error && response.statusCode === 200) {
-    //     const data = JSON.parse(body);
-
-    //     if ("results" in data && data.results.length > 0) {
-    //       const locationData = data.results[0];
-    //       const latitude = locationData.geometry.lat;
-    //       const longitude = locationData.geometry.lng;
-    //       const formattedAddress = locationData.formatted_address;
-    //       return { latitude, longitude, formattedAddress };
-    //     } else {
-    //       // Default location for Kenya (coordinates near the center of Kenya)
-    //       const kenyaLatitude = 1.2921;
-    //       const kenyaLongitude = 36.8219;
-    //       return {
-    //         latitude: kenyaLatitude,
-    //         longitude: kenyaLongitude,
-    //         formattedAddress: "Kenya",
-    //       };
-    //     }
-    //   } else {
-    //     console.error("Error geocoding location:", error);
-    //     return null;
-    //   }
-    // });
-  } catch (error) {
-    console.log(error);
-  }
-}
-
 // USSD Menu
 app.post("/ussd", async (req, res) => {
   // Read the variables sent via POST from our API
@@ -102,12 +67,9 @@ app.post("/ussd", async (req, res) => {
   // Define menu states
   menu.startState({
     run: () => {
-      // use menu.con() to send response without terminating session
-      menu.con(
-        "Welcome to FindSpecialist USSD App " + "\n1. Press 1 to start:"
-      );
+      menu.con("Welcome to Medics USSD App " + "\n1. Press 1 to start:");
     },
-    // next object links to next state based on user input
+
     next: {
       1: "start",
     },
@@ -137,7 +99,7 @@ app.post("/ussd", async (req, res) => {
     run: function () {
       let age = menu.val;
       menu.session.set("age", age).then(() => {
-        menu.con("Enter your number (e.g +254712345678):");
+        menu.con("Enter your number (e.g 0712345678):");
       });
     },
     next: {
@@ -159,13 +121,13 @@ app.post("/ussd", async (req, res) => {
   menu.state("registration.location", {
     run: async () => {
       let location = menu.val;
-
       const specialistType = await getDoctorType();
       menu.session.set("location", location);
+      let unique = [...new Set(specialistType)];
 
       let string1 = `Select the type of specialist you need:`;
       let string2 = "";
-      specialistType.forEach((specialist, index) => {
+      unique.forEach((specialist, index) => {
         string2 += `
       ${index + 1}. ${specialist}
      `;
@@ -173,33 +135,62 @@ app.post("/ussd", async (req, res) => {
       menu.con(string1.concat(" ", string2));
     },
     next: {
-      "*[1-6]": "registration.specialist",
+      "*\\d+": "registration.specialist",
     },
   });
   menu.state("registration.specialist", {
     run: async () => {
       let specialist;
       let docIndex = menu.val;
+      console.log("Index", docIndex);
       const doctors = await getDoctors();
+      const specialistType = await getDoctorType();
+
       doctors.forEach((doctor, idx) => {
         doctorsArray.push({ index: `${idx + 1}`, name: doctor.name });
       });
-      specialist = doctorsArray.filter(
-        (doctor) => doctor.index === docIndex
-      )[0];
+      let unique = [...new Set(specialistType)];
+      specialist = unique.at(docIndex - 1);
 
-      await menu.session.set("specialist", specialist?.name);
+      //console.log(specialist);
+      const docNames = await getDoctorsNames(specialist);
+      await menu.session.set("docNamesArray", docNames);
+      console.log("docNames", docNames);
+
+      //await menu.session.set("specialist", specialist?.name);
       const name = await menu.session.get("name");
       const age = await menu.session.get("age");
       const number = await menu.session.get("number");
       const location = await menu.session.get("location");
-      await insertUser(name, age, number, location);
-      menu.con("Please enter the date for the appointment (YYYY-MM-DD):");
+      //await insertUser(name, age, number, location);
+      let string1 = `Select a Doctor:`;
+      let string2 = "";
+      docNames.forEach((specialist, index) => {
+        string2 += `
+      ${index + 1}. ${specialist}
+     `;
+      });
+      menu.con(string1.concat(" ", string2));
+    },
+    next: {
+      "*\\d+": "appointment.doctor",
+    },
+  });
+
+  menu.state("appointment.doctor", {
+    run: async () => {
+      let docIndex = menu.val;
+      const docNamesArray = await menu.session.get("docNamesArray");
+      const doctor = docNamesArray.at(docIndex - 1);
+      console.log("Doctor", doctor);
+      await menu.session.set("Doctor", doctor);
+      menu.con("Please enter the Date for the appointment (YYYY-MM-DD):");
     },
     next: {
       "*\\d+": "appointment.date",
     },
   });
+
   menu.state("appointment.date", {
     run: async () => {
       let date = menu.val;
@@ -229,13 +220,14 @@ app.post("/ussd", async (req, res) => {
       const date = await menu.session.get("date");
       const time = await menu.session.get("time");
       const timeObject = moment(time, "hh:mm").format("HH:mm");
-      const specialist = await menu.session.get("specialist");
+      const specialist = await menu.session.get("Doctor");
       const name = await menu.session.get("name");
       const userId = await getUserId(name);
       const doctorId = await getDoctorId(specialist);
       const sms_message = `Appointment scheduled with ${specialist} on ${date} at ${time}.`;
-      await sendSms(phoneNumber, sms_message);
-      await recordAppointment(userId, doctorId, date, timeObject);
+      //await sendSms(phoneNumber, sms_message);
+      // await recordAppointment(userId, doctorId, date, timeObject);
+      console.log(specialist, doctorId, userId, date, time);
       menu.end(`Your appointment has been scheduled.
                       An appointment confirmation SMS has been sent to your phone.`);
     },
