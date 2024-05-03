@@ -125,7 +125,7 @@ app.post("/ussd", async (req, res) => {
       menu.session.set("location", location);
       let unique = [...new Set(specialistType)];
 
-      let string1 = `Select the type of specialist you need:`;
+      let string1 = `Select specialist you need:`;
       let string2 = "";
       unique.forEach((specialist, index) => {
         string2 += `
@@ -162,7 +162,7 @@ app.post("/ussd", async (req, res) => {
       const age = await menu.session.get("age");
       const number = await menu.session.get("number");
       const location = await menu.session.get("location");
-      //await insertUser(name, age, number, location);
+      await insertUser(name, age, number, location);
       let string1 = `Select a Doctor:`;
       let string2 = "";
       docNames.forEach((specialist, index) => {
@@ -225,8 +225,8 @@ app.post("/ussd", async (req, res) => {
       const userId = await getUserId(name);
       const doctorId = await getDoctorId(specialist);
       const sms_message = `Appointment scheduled with ${specialist} on ${date} at ${time}.`;
-      //await sendSms(phoneNumber, sms_message);
-      // await recordAppointment(userId, doctorId, date, timeObject);
+      await sendSms(phoneNumber, sms_message);
+      await recordAppointment(userId, doctorId, date, timeObject);
       console.log(specialist, doctorId, userId, date, time);
       menu.end(`Your appointment has been scheduled.
                       An appointment confirmation SMS has been sent to your phone.`);
