@@ -1,7 +1,14 @@
 import * as dotenv from "dotenv";
 dotenv.config();
-import { User, Appointment, Doctor } from "../DB/db.js";
+import {
+  User,
+  Appointment,
+  Doctor,
+  Teleppointment,
+  Googleappointment,
+} from "../DB/db.js";
 import Africastalking from "africastalking";
+import { Op } from "sequelize";
 
 // Africa is talking
 const credentials = {
@@ -27,11 +34,41 @@ export async function insertUser(name, age, phoneNumber, location) {
 }
 
 //Get User By ID
-export async function getUserId(name) {
+export async function getUserId(phone_number) {
   try {
     const user = await User.findOne({
       attributes: ["user_id"],
-      where: { name: name },
+      where: { phone_number: phone_number },
+    });
+    return user.user_id;
+  } catch (e) {
+    console.error("Error getting user ID:", e);
+  }
+}
+
+export async function getGoogleAppointments(date) {
+  try {
+    console.log(date);
+    const appointments = await Googleappointment.findAll({
+      where: {
+        date: {
+          [Op.eq]: date,
+        },
+      },
+    });
+
+    return appointments;
+  } catch (e) {
+    console.error("Error inserting data:", e);
+  }
+}
+
+//Get User By PhoneNumber
+export async function checkUserExist(phone_number) {
+  try {
+    const user = await User.findOne({
+      attributes: ["user_id"],
+      where: { phone_number: phone_number },
     });
     return user.user_id;
   } catch (e) {
@@ -117,11 +154,25 @@ export async function recordAppointment(userId, doctorId, date, time) {
   }
 }
 
+export async function recordTeleppointment(userId, doctorId, date, time) {
+  try {
+    await Teleppointment.create({
+      user_id: userId,
+      doctor_id: doctorId,
+      date: date,
+      time: time,
+      status: "Scheduled",
+    });
+  } catch (e) {
+    console.error("Error inserting data:", e);
+  }
+}
 export async function sendSms(phoneNumber, message) {
   const options = {
     to: [phoneNumber],
     message: message,
   };
+  console.log(options);
   async function sendSMS() {
     try {
       const result = await sms.send(options);
@@ -133,6 +184,20 @@ export async function sendSms(phoneNumber, message) {
   sendSMS();
 }
 
+// convert 12hrs to 24hrs
+export function convertTo24Hour(time12h) {
+  const [time, modifier] = time12h.split(" ");
+  let [hours, minutes] = time.split(":");
+
+  // Ensure hours is treated as a string
+  hours = hours === "12" ? "00" : hours;
+
+  if (modifier === "PM" && hours !== "12") {
+    hours = String(parseInt(hours, 10) + 12);
+  }
+
+  return `${hours.padStart(2, "0")}:${minutes}`;
+}
 // async function geocodeLocation(location) {
 //   try {
 //     const url = `https://api.opencagedata.com/geocode/v1/json?key=${opencageApiKey}&q=${location}`;

@@ -65,8 +65,46 @@ export const Appointment = sequelize.define(
     user_id: DataTypes.INTEGER,
     doctor_id: DataTypes.INTEGER,
     date: DataTypes.DATE,
-    time: DataTypes.TIME,
+    time: DataTypes.STRING,
     status: DataTypes.STRING,
+  },
+  {
+    timestamps: false,
+  }
+);
+export const Teleppointment = sequelize.define(
+  "Teleappointment",
+  {
+    appointment_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    user_id: DataTypes.INTEGER,
+    doctor_id: DataTypes.INTEGER,
+    date: DataTypes.DATE,
+    time: DataTypes.STRING,
+    status: DataTypes.STRING,
+  },
+  {
+    timestamps: false,
+  }
+);
+
+export const Googleappointment = sequelize.define(
+  "Googleappointment",
+  {
+    appointment_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    doctor_id: DataTypes.INTEGER,
+    date: DataTypes.DATEONLY,
+    start_time: DataTypes.TIME,
+    end_time: DataTypes.TIME,
+    appointment_info: DataTypes.STRING,
+    google_id: DataTypes.STRING,
   },
   {
     timestamps: false,
@@ -76,5 +114,7 @@ export const Appointment = sequelize.define(
 // Define associations
 Appointment.belongsTo(User, { foreignKey: "user_id", as: "User" });
 Appointment.belongsTo(Doctor, { foreignKey: "doctor_id", as: "Doctor" });
+Teleppointment.belongsTo(User, { foreignKey: "user_id", as: "User" });
+Teleppointment.belongsTo(Doctor, { foreignKey: "doctor_id", as: "Doctor" });
 User.hasMany(Appointment, { foreignKey: "user_id" });
 Doctor.hasMany(Appointment, { foreignKey: "doctor_id" });
